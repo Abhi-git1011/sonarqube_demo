@@ -45,9 +45,9 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "Checking out branch: ${params.BRANCH_NAME}"
-                sh '''
-                    git checkout -B ${BRANCH_NAME} origin/${BRANCH_NAME}
-                '''
+                sh """
+                    git checkout -B ${params.BRANCH_NAME} origin/${params.BRANCH_NAME}
+                """
                 sh '''
                     echo "========================================"
                     echo "Checked out branch:"
