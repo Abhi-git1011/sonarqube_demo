@@ -1,5 +1,4 @@
 pipeline {
-
     agent any
 
     options {
@@ -24,17 +23,11 @@ pipeline {
     }
 
     stages {
-
         stage('Fetch Branch') {
-
             steps {
-
                 echo "Fetching latest branch information from GitHub..."
-
                 deleteDir()
-
-                git branch: 'main',
-                    url: "${GIT_URL}"
+                git branch: 'main', url: "${GIT_URL}"
 
                 sh '''
                     echo "Fetching all branches..."
@@ -49,17 +42,12 @@ pipeline {
             }
         }
 
-
         stage('Checkout') {
-
             steps {
-
                 echo "Checking out branch: ${params.BRANCH_NAME}"
-
                 sh '''
                     git checkout -B ${BRANCH_NAME} origin/${BRANCH_NAME}
                 '''
-
                 sh '''
                     echo "========================================"
                     echo "Checked out branch:"
@@ -68,70 +56,60 @@ pipeline {
                     echo ""
                     echo "Commit:"
                     git rev-parse HEAD
-
                     echo "========================================"
                 '''
             }
         }
 
-
         stage('SonarQube Analysis') {
-
             steps {
-
                 echo "Starting SonarQube Analysis..."
-
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-
                     sh '''
                         mvn clean verify sonar:sonar \
                         -Dsonar.projectKey=devops-sonarqube-demo \
                         -Dsonar.projectName=devops-sonarqube-demo
                     '''
                 }
-
                 echo "SonarQube analysis completed."
             }
         }
 
-
         stage('Quality Gate') {
-
             steps {
-
                 echo "Waiting for SonarQube Quality Gate..."
-
                 timeout(time: 10, unit: 'MINUTES') {
-
                     waitForQualityGate abortPipeline: true
                 }
-
                 echo "========================================"
                 echo "CODE QUALITY GATE PASSED"
                 echo "========================================"
             }
         }
-    }
 
-
-    post {
-
-        success {
-
-            echo "========================================"
-            echo "PIPELINE SUCCESS"
-            echo "Branch: ${params.BRANCH_NAME}"
-            echo "Code Quality Gate: PASSED"
-            echo "========================================"
+        stage('Approval') {
+            steps {
+                script {
+                    def approval = input(
+                        message: 'Do you want to continue with the build?',
+                        parameters: [
+                            choice(name: 'APPROVAL', choices: ['Yes', 'No'])
+                        ]
+                    )
+                    if (approval == 'No') {
+                        error "Approval rejected. Pipeline failed."
+                    }
+                    echo "Approval granted."
+                }
+            }
         }
 
-        failure {
-
-            echo "========================================"
-            echo "PIPELINE FAILED"
-            echo "Branch: ${params.BRANCH_NAME}"
-            echo "Code Quality Gate: FAILED"
-            echo "========================================"
+        stage('Build') {
+            steps {
+                dir('app') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
         }
     }
 }
