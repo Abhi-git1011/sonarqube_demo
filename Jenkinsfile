@@ -111,5 +111,13 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to Nexus') {
+            steps {
+                dir('app') {
+                    sh 'mvn deploy -DskipTests'
+                }
+            }
+        }
     }
 }
