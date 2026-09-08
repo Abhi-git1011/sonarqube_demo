@@ -106,17 +106,13 @@ pipeline {
 
         stage('Build') {
             steps {
-                dir('app') {
-                    sh 'mvn package -DskipTests'
-                }
+                sh 'mvn package -DskipTests'
             }
         }
 
         stage('Deploy to Nexus') {
             steps {
-                dir('app') {
-                    sh 'mvn deploy -DskipTests'
-                }
+                sh 'mvn deploy -DskipTests'
             }
         }
     }
